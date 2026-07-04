@@ -275,13 +275,12 @@ button{ font-family:var(--font-body); }
 .reorder-item.speaker-Salesperson .speaker{ background:var(--primary-light); color:var(--primary-dark); }
 .reorder-item.speaker-Customer .speaker{ background:#FDEFE9; color:var(--accent-dark); }
 .reorder-item .txt{ flex:1; font-size:.9rem; }
-.reorder-item .moves{ display:flex; flex-direction:column; gap:3px; }
-.reorder-item .moves button{
-  border:1px solid var(--border); background:#fff; border-radius:6px; width:26px; height:22px; cursor:pointer; font-size:.75rem;
-  color:var(--ink-soft);
+.reorder-num{
+  flex:0 0 auto; width:52px; height:40px; text-align:center; font-family:var(--font-display); font-weight:700;
+  font-size:1.05rem; border:2px solid var(--border); border-radius:10px; background:#fff; color:var(--primary-dark);
 }
-.reorder-item .moves button:hover{ background:var(--primary-light); color:var(--primary-dark); }
-.reorder-item .moves button:disabled{ opacity:.3; cursor:default; }
+.reorder-num:focus{ border-color:var(--primary); outline:none; }
+.reorder-num.dup{ border-color:var(--danger); background:var(--danger-light); color:var(--danger); }
 
 /* ---------- Result screen ---------- */
 .result-hero{ text-align:center; padding:8px 0 6px; }
@@ -794,7 +793,7 @@ Cette application est un outil pédagogique développé pour un usage en classe.
 - Conformément au RGPD, vous pouvez à tout moment demander la suppression de vos données auprès de votre établissement.`;
 
 const TEACHER_CODE = "0504";
-const STUDENT_ACCESS_CODE = "NDRC26";
+const STUDENT_ACCESS_CODE = "1NDRC26";
 
 /* Glossaire de traduction (FR) pour toutes les options des niveaux 1 et 3,
    utilisé pour donner le vocabulaire complet (bonnes réponses ET distracteurs) dans le corrigé. */
@@ -1983,50 +1982,77 @@ function attachReadingEvents(){
 /* ---------- Reorder exercise (level 6) ---------- */
 function renderReorderExercise(variant){
   const total = runner.reorderOrder.length;
-  const rows = runner.reorderOrder.map((it,idx)=>`
+  if(!runner.reorderAssignments) runner.reorderAssignments = {};
+  const rows = runner.reorderOrder.map((it,idx)=>{
+    const val = runner.reorderAssignments[idx];
+    return `
     <div class="reorder-item speaker-${it.s}" data-pos="${idx}">
+      <input type="number" class="reorder-num" data-pos="${idx}" min="1" max="${total}" placeholder="N°" value="${val!=null?val:''}" inputmode="numeric">
       <span class="speaker">${it.s === "Salesperson" ? "Vendeur" : "Client"}</span>
       <span class="txt">${escapeHtml(it.t)}</span>
-      <span class="moves">
-        <button type="button" data-dir="up" data-pos="${idx}" ${idx===0?"disabled":""}>▲</button>
-        <button type="button" data-dir="down" data-pos="${idx}" ${idx===total-1?"disabled":""}>▼</button>
-      </span>
-    </div>`).join("");
+    </div>`;
+  }).join("");
   return `
   <div class="card">
-    <div class="q-progress">${variant.label} — ${total} répliques à remettre dans l'ordre chronologique</div>
+    <div class="q-progress">${variant.label} — ${total} répliques à numéroter dans l'ordre chronologique</div>
+    <p class="muted">Indiquez le numéro (1 à ${total}) correspondant à la place de chaque réplique dans le dialogue. Vous pouvez modifier vos numéros à tout moment avant de valider.</p>
     <div class="reorder-list" id="reorderList">${rows}</div>
+    <p class="muted mt-8" id="reorderWarning" style="display:none;color:#D64545;">Chaque numéro de 1 à ${total} doit être utilisé une seule fois.</p>
     <div class="btn-row">
-      <button class="btn btn-primary" id="validateOrderBtn">Valider l'ordre</button>
+      <button class="btn btn-primary" id="validateOrderBtn" disabled>Valider l'ordre</button>
     </div>
   </div>`;
 }
 function attachReorderEvents(){
   const list = document.getElementById("reorderList");
-  list.addEventListener("click", (e)=>{
-    const btn = e.target.closest("button[data-dir]");
-    if(!btn) return;
-    const pos = parseInt(btn.dataset.pos,10);
-    const dir = btn.dataset.dir;
-    const arr = runner.reorderOrder;
-    if(dir==="up" && pos>0){
-      [arr[pos-1],arr[pos]] = [arr[pos],arr[pos-1]];
-    } else if(dir==="down" && pos<arr.length-1){
-      [arr[pos+1],arr[pos]] = [arr[pos],arr[pos+1]];
-    }
-    render();
+  const validateBtn = document.getElementById("validateOrderBtn");
+  const warning = document.getElementById("reorderWarning");
+  const total = runner.reorderOrder.length;
+
+  function checkValid(){
+    const inputs = Array.from(list.querySelectorAll(".reorder-num"));
+    const values = inputs.map(i => i.value.trim());
+    const allFilled = values.every(v => v !== "");
+    const nums = values.map(v => parseInt(v,10));
+    const inRange = nums.every(n => n>=1 && n<=total);
+    const counts = {};
+    nums.forEach(n => { counts[n] = (counts[n]||0)+1; });
+    const hasDuplicates = Object.values(counts).some(c => c>1);
+    inputs.forEach((inp,i) => {
+      inp.classList.toggle("dup", values[i]!=="" && counts[nums[i]] > 1);
+    });
+    const isValid = allFilled && inRange && !hasDuplicates;
+    validateBtn.disabled = !isValid;
+    warning.style.display = (allFilled && (hasDuplicates || !inRange)) ? "block" : "none";
+    return isValid;
+  }
+
+  list.querySelectorAll(".reorder-num").forEach(inp=>{
+    inp.addEventListener("input", ()=>{
+      const pos = parseInt(inp.dataset.pos,10);
+      const val = inp.value.trim();
+      runner.reorderAssignments[pos] = val === "" ? null : parseInt(val,10);
+      checkValid();
+    });
   });
-  document.getElementById("validateOrderBtn").addEventListener("click", ()=>{
+  checkValid();
+
+  validateBtn.addEventListener("click", ()=>{
+    if(!checkValid()) return;
     const arr = runner.reorderOrder;
     let correctCount = 0;
     arr.forEach((it,idx)=>{
-      const isCorrect = it.origIndex === idx;
-      if(isCorrect) correctCount++;
+      const assigned = runner.reorderAssignments[idx];
+      if(assigned === it.origIndex+1) correctCount++;
     });
-    // build a readable answer detail for the PDF
+    const studentOrderIdx = arr.map((_,idx)=>idx).sort((a,b)=> runner.reorderAssignments[a]-runner.reorderAssignments[b]);
+    const studentTranscript = studentOrderIdx.map(idx=>{
+      const it = arr[idx];
+      return (it.s==="Salesperson"?"Vendeur":"Client")+": "+it.t;
+    }).join(" / ");
     runner.answers = [{
       q: "Ordre du dialogue (24 répliques)",
-      studentAnswer: arr.map(it => (it.s==="Salesperson"?"Vendeur":"Client")+": "+it.t).join(" / "),
+      studentAnswer: studentTranscript,
       correctAnswer: runner.variant.items.map(it => (it.s==="Salesperson"?"Vendeur":"Client")+": "+it.t).join(" / "),
       isCorrect: correctCount === arr.length,
       partialCorrectCount: correctCount,
