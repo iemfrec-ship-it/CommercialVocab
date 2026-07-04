@@ -359,7 +359,22 @@ button{ font-family:var(--font-body); }
 }
 .modal-box pre{ white-space:pre-wrap; font-family:var(--font-body); font-size:.88rem; line-height:1.6; color:var(--ink); }
 
-/* ---------- Utility ---------- */
+/* ---------- Corrigé (fin de niveau) ---------- */
+.corrige-variant{ margin-top:18px; }
+.corrige-variant h4{ color:var(--primary-dark); font-size:1rem; border-bottom:2px solid var(--border); padding-bottom:6px; margin-bottom:10px; }
+.corrige-item{
+  border-radius:10px; padding:10px 12px; margin-bottom:8px; font-size:.88rem;
+  border-left:4px solid var(--border); background:var(--bg-alt);
+}
+.corrige-item.ok{ border-left-color:var(--success); }
+.corrige-item.ko{ border-left-color:var(--danger); background:var(--danger-light); }
+.corrige-q{ font-weight:700; margin-bottom:4px; }
+.corrige-a{ margin-bottom:2px; }
+.corrige-correct{ color:var(--success); font-weight:600; margin-bottom:2px; }
+.corrige-expl{ color:var(--ink-soft); font-style:italic; margin-top:4px; }
+.corrige-dialog{ background:var(--bg-alt); border-radius:10px; padding:10px 14px; font-size:.85rem; }
+.corrige-dialog-line{ padding:4px 0; border-bottom:1px dashed var(--border); }
+.corrige-dialog-line:last-child{ border-bottom:none; }
 .muted{ color:var(--ink-soft); font-size:.88rem; }
 .center{ text-align:center; }
 .mt-8{ margin-top:8px;} .mt-16{margin-top:16px;} .mt-24{margin-top:24px;}
@@ -1244,6 +1259,32 @@ function starsHtml(n){
   for(let i=0;i<3;i++) out += `<span class="star ${i<n?'on':''}">${i<n?'⭐':'☆'}</span>`;
   return `<div class="stars">${out}</div>`;
 }
+/* Génère une explication pédagogique courte pour le corrigé (appli + PDF),
+   à partir du niveau et de la réponse enregistrée (pas de contenu supplémentaire à stocker). */
+function buildExplanation(levelNum, entry){
+  const c = entry.correctAnswer;
+  const isTF = (c === "True" || c === "False");
+  switch(levelNum){
+    case 1:
+      return `« ${c} » est la définition ou la traduction correcte de ce terme de vocabulaire commercial.`;
+    case 2:
+      return c === "True"
+        ? "Cette affirmation correspond bien à la définition exacte du terme de vocabulaire commercial."
+        : "Cette affirmation est fausse : elle ne correspond pas à la définition exacte du terme concerné.";
+    case 3:
+      return `« ${c} » est le mot qui convient le mieux dans le contexte de cette phrase.`;
+    case 4:
+      return `${c} est la réponse la plus professionnelle : elle reste courtoise, montre de l'écoute et propose une solution plutôt que de rejeter l'objection du client.`;
+    case 5:
+      return isTF
+        ? (c === "True" ? "Cette affirmation est confirmée par le texte ci-dessus." : "Cette affirmation est contredite par le texte ci-dessus.")
+        : `« ${c} » correspond à ce qui est dit ou clairement sous-entendu dans le texte.`;
+    case 7:
+      return `${c} est la réplique la plus adaptée : professionnelle, à l'écoute du client, et orientée vers une solution.`;
+    default:
+      return `La bonne réponse est « ${c} ».`;
+  }
+}
 
 let state = null;
 let runner = null; // {levelIdx, variantIdx, items, kind, answers:[], text, reorderOrder, currentIndex}
@@ -1314,6 +1355,12 @@ function render(){
     attachFinalEvents();
     renderFooter();
     animateScoreDisplay();
+    return;
+  }
+  if(state.screen === "corrige"){
+    app.innerHTML = renderTopbar() + renderPipeline() + renderCorrigeScreen();
+    attachCorrigeEvents();
+    renderFooter();
     return;
   }
   if(state.screen === "result"){
@@ -1814,17 +1861,19 @@ function finalizeExercise(overrideCorrect, overrideTotal){
   };
 
   if(advanced){
+    state.lastCompletedLevel = level.num;
     if(level.num === 7){
-      state.screen = "final";
+      state.pendingAfterCorrige = "final";
     } else {
       state.currentLevel += 1;
       state.currentVariantIdx = 0;
-      state.screen = "result";
+      state.pendingAfterCorrige = "levelIntro";
     }
   } else {
     state.currentVariantIdx += 1;
-    state.screen = "result";
+    state.pendingAfterCorrige = null;
   }
+  state.screen = "result";
   runner = null;
   saveState();
   render();
@@ -1850,13 +1899,57 @@ function renderResultScreen(){
     </div>
     <p class="center mt-16">${escapeHtml(r.thresholdMsg)}</p>
     <div class="btn-row" style="justify-content:center">
-      <button class="btn btn-primary btn-lg" id="continueBtn">${r.advanced ? "🚀 Niveau suivant" : "🔁 Retenter"}</button>
+      <button class="btn btn-primary btn-lg" id="continueBtn">${r.advanced ? "📖 Voir le corrigé" : "🔁 Retenter"}</button>
     </div>
   </div>`;
 }
 function attachResultEvents(){
   document.getElementById("continueBtn").addEventListener("click", ()=>{
-    state.screen = "levelIntro";
+    state.screen = state.lastResult.advanced ? "corrige" : "levelIntro";
+    saveState();
+    render();
+  });
+}
+
+/* ---------- Corrigé screen (fin de niveau) ---------- */
+function renderCorrigeScreen(){
+  const lvlNum = state.lastCompletedLevel;
+  const level = LEVELS[lvlNum-1];
+  const entries = state.history.filter(h => h.level === lvlNum);
+  let blocks = "";
+  entries.forEach(h=>{
+    blocks += `<div class="corrige-variant"><h4>${escapeHtml(h.variantLabel)} — ${h.percentage}% (${h.correctCount}/${h.total})</h4>`;
+    if(h.kind === "reorder"){
+      const it = h.items[0];
+      const variantData = level.variants.find(v=>v.label===h.variantLabel);
+      blocks += `<p class="muted">${it.partialCorrectCount} / ${it.partialTotal} répliques correctement placées.</p>`;
+      blocks += `<div class="corrige-dialog">` + (variantData ? variantData.items.map((d,i)=>`
+        <div class="corrige-dialog-line"><strong>${i+1}. ${d.s==="Salesperson"?"Vendeur":"Client"} :</strong> ${escapeHtml(d.t)}</div>`).join("") : "") + `</div>`;
+    } else {
+      h.items.forEach((it,i)=>{
+        blocks += `<div class="corrige-item ${it.isCorrect?'ok':'ko'}">
+          <div class="corrige-q">${i+1}. ${escapeHtml(it.q)}</div>
+          <div class="corrige-a">Votre réponse : <strong>${escapeHtml(it.studentAnswer)}</strong> ${it.isCorrect ? '✅' : '❌'}</div>
+          ${!it.isCorrect ? `<div class="corrige-correct">Réponse correcte : <strong>${escapeHtml(it.correctAnswer)}</strong></div>` : ``}
+          <div class="corrige-expl">💡 ${escapeHtml(buildExplanation(lvlNum, it))}</div>
+        </div>`;
+      });
+    }
+    blocks += `</div>`;
+  });
+  return `
+  <div class="card">
+    <span class="eyebrow">📖 Corrigé — Niveau ${lvlNum}</span>
+    <h2>${escapeHtml(level.title)}</h2>
+    ${blocks}
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn btn-primary btn-lg" id="corrigeContinueBtn">${state.pendingAfterCorrige === "final" ? "🏁 Voir mon score final" : "🚀 Niveau suivant"}</button>
+    </div>
+  </div>`;
+}
+function attachCorrigeEvents(){
+  document.getElementById("corrigeContinueBtn").addEventListener("click", ()=>{
+    state.screen = state.pendingAfterCorrige;
     saveState();
     render();
   });
@@ -2040,6 +2133,19 @@ function downloadPdf(){
     if(h.kind === "reorder"){
       const it = h.items[0];
       paragraph(`Résultat : ${it.partialCorrectCount} / ${it.partialTotal} répliques correctement placées.`);
+      y += 1;
+      doc.setFont("helvetica","bold"); doc.setFontSize(9.5);
+      ensureSpace(6); doc.text("Corrigé — ordre correct du dialogue :", marginX, y); y += 5;
+      doc.setFont("helvetica","normal"); doc.setFontSize(9);
+      const lvl = LEVELS[h.level-1];
+      const variantData = lvl.variants.find(v=>v.label===h.variantLabel);
+      if(variantData){
+        variantData.items.forEach((d,i)=>{
+          const who = d.s === "Salesperson" ? "Vendeur" : "Client";
+          const lines = doc.splitTextToSize(`${i+1}. ${who} : ${d.t}`, maxW-2);
+          lines.forEach(l=>{ ensureSpace(5); doc.text(l, marginX+2, y); y+=4.3; });
+        });
+      }
     } else {
       h.items.forEach((it, i)=>{
         ensureSpace(14);
@@ -2047,7 +2153,7 @@ function downloadPdf(){
         const qLines = doc.splitTextToSize(`${i+1}. ${it.q}`, maxW);
         qLines.forEach(l=>{ ensureSpace(5); doc.text(l, marginX, y); y+=4.6; });
         doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
-        const mark = it.isCorrect ? "✓ Correct" : "✗ Incorrect";
+        const mark = it.isCorrect ? "Correct" : "Incorrect";
         doc.setTextColor(it.isCorrect ? 46 : 214, it.isCorrect ? 158 : 69, it.isCorrect ? 100 : 69);
         const ansLines = doc.splitTextToSize(`Réponse donnée : ${it.studentAnswer}  (${mark})`, maxW);
         ansLines.forEach(l=>{ ensureSpace(5); doc.text(l, marginX+2, y); y+=4.4; });
@@ -2056,6 +2162,12 @@ function downloadPdf(){
           const corrLines = doc.splitTextToSize(`Réponse correcte : ${it.correctAnswer}`, maxW);
           corrLines.forEach(l=>{ ensureSpace(5); doc.text(l, marginX+2, y); y+=4.4; });
         }
+        doc.setFont("helvetica","italic"); doc.setFontSize(8.7);
+        doc.setTextColor(74,90,95);
+        const explLines = doc.splitTextToSize(`Explication : ${buildExplanation(h.level, it)}`, maxW-2);
+        explLines.forEach(l=>{ ensureSpace(5); doc.text(l, marginX+2, y); y+=4.1; });
+        doc.setTextColor(28,43,48);
+        doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
         y += 1.5;
       });
     }
