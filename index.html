@@ -372,6 +372,10 @@ button{ font-family:var(--font-body); }
 .corrige-a{ margin-bottom:2px; }
 .corrige-correct{ color:var(--success); font-weight:600; margin-bottom:2px; }
 .corrige-expl{ color:var(--ink-soft); font-style:italic; margin-top:4px; }
+.corrige-vocab{ margin-top:8px; background:#fff; border:1px dashed var(--border); border-radius:8px; padding:8px 10px; }
+.corrige-vocab-title{ font-weight:700; font-size:.78rem; color:var(--primary-dark); display:block; margin-bottom:4px; }
+.corrige-vocab-line{ font-size:.82rem; color:var(--ink-soft); padding:1px 0; }
+.corrige-vocab-line.ok{ color:var(--success); font-weight:700; }
 .corrige-dialog{ background:var(--bg-alt); border-radius:10px; padding:10px 14px; font-size:.85rem; }
 .corrige-dialog-line{ padding:4px 0; border-bottom:1px dashed var(--border); }
 .corrige-dialog-line:last-child{ border-bottom:none; }
@@ -791,6 +795,221 @@ Cette application est un outil pédagogique développé pour un usage en classe.
 
 const TEACHER_CODE = "0504";
 const STUDENT_ACCESS_CODE = "NDRC26";
+
+/* Glossaire de traduction (FR) pour toutes les options des niveaux 1 et 3,
+   utilisé pour donner le vocabulaire complet (bonnes réponses ET distracteurs) dans le corrigé. */
+const GLOSSARY_FR = {
+  "B2B":"B2B (entreprise à entreprise)","B2C":"B2C (entreprise à consommateur)","VAT":"TVA",
+  "a business supplier":"un fournisseur professionnel","a buyer":"un acheteur","a client":"un client",
+  "a client/product set":"un portefeuille de clients/produits","a company identity":"une identité d'entreprise",
+  "a competitor":"un concurrent","a complaint":"une réclamation","a complaint form":"un formulaire de réclamation",
+  "a complaint letter":"une lettre de réclamation","a customer":"un client","a customer survey":"une enquête client",
+  "a delivery":"une livraison","a delivery delay":"un retard de livraison","a delivery note":"un bon de livraison",
+  "a delivery van":"une camionnette de livraison","a discount":"une remise","a discount code":"un code de réduction",
+  "a due date":"une date limite/échéance","a finished contract":"un contrat terminé","a finished sale":"une vente conclue",
+  "a fixed salary":"un salaire fixe","a free small portion":"un petit échantillon gratuit",
+  "a high-value client":"un client à forte valeur (grand compte)","a job contract":"un contrat de travail",
+  "a job offer":"une offre d'emploi","a late fee":"des frais de retard","a loyal customer":"un client fidèle",
+  "a market percentage":"une part de marché","a new customer":"un nouveau client","a partner":"un partenaire",
+  "a payment reminder":"une relance de paiement","a payment request":"une demande de paiement",
+  "a potential customer":"un client potentiel (prospect)","a price increase":"une hausse de prix",
+  "a price reduction":"une baisse de prix","a product catalogue":"un catalogue de produits",
+  "a product listing":"une liste de produits","a product return":"un retour produit",
+  "a product sample":"un échantillon de produit","a refund":"un remboursement",
+  "a refund policy":"une politique de remboursement","a refund request":"une demande de remboursement",
+  "a repair guarantee":"une garantie de réparation","a rival company":"une entreprise concurrente",
+  "a rival firm":"une entreprise concurrente","a sales presentation":"une présentation commerciale (pitch)",
+  "a sales target":"un objectif de vente","a scheduled meeting":"un rendez-vous planifié",
+  "a shareholder":"un actionnaire","a single invoice":"une seule facture","a supplier":"un fournisseur",
+  "a supplier contract":"un contrat fournisseur","a type of invoice":"un type de facture",
+  "a type of product":"un type de produit","a vendor":"un vendeur/fournisseur","a warranty":"une garantie",
+  "a written price offer":"une offre de prix écrite (devis)","added value":"valeur ajoutée",
+  "after-sales service":"service après-vente","agreed payment timeframe":"délai de paiement convenu",
+  "agreement":"un accord","an agreement":"un accord","an extra real benefit":"un avantage supplémentaire réel",
+  "an interested prospect":"un prospect intéressé","an invoice":"une facture",
+  "an order confirmation":"une confirmation de commande","appointment":"un rendez-vous",
+  "asking for refund":"demander un remboursement","bank to buyer":"banque à acheteur (incorrect)",
+  "batch":"un lot","benefit":"un avantage","best to buy":"meilleur à acheter (incorrect)","brand":"une marque",
+  "business to business":"entreprise à entreprise","buy to bargain":"acheter pour négocier (incorrect)",
+  "calling loyal customers":"appeler des clients fidèles","cancel":"annuler","cancel the order":"annuler la commande",
+  "cancelling appointments":"annuler des rendez-vous","catalogue":"un catalogue",
+  "chosen customer group":"groupe de clients ciblé","close the deal":"conclure la vente",
+  "cold call":"un appel à froid (prospection)","cold calling":"la prospection téléphonique à froid",
+  "commission":"une commission","company accountant":"comptable de l'entreprise",
+  "company headquarters":"siège de l'entreprise","company profit":"bénéfice de l'entreprise",
+  "comparing online prices":"comparer les prix en ligne","competitor":"un concurrent","competitors":"des concurrents",
+  "complaint":"une réclamation","complaints":"des réclamations","complaints from customers":"réclamations de clients",
+  "contacting unknown prospects":"contacter des prospects inconnus",
+  "cost-price difference":"différence entre coût et prix de vente","customer":"un client",
+  "customer advantage gained":"avantage obtenu par le client","customer complaint":"réclamation client",
+  "customer refund":"remboursement client","customer support team":"équipe du service client",
+  "delay payment":"retarder le paiement","delivery":"une livraison","delivery address":"adresse de livraison",
+  "delivery company":"société de livraison","delivery delay":"retard de livraison","delivery driver":"livreur",
+  "delivery fee":"frais de livraison","delivery method":"mode de livraison","delivery note":"bon de livraison",
+  "delivery schedule":"planning de livraison","delivery schedule team":"équipe de planning de livraison",
+  "discount":"une remise","discount before purchase":"remise avant achat","discount rate":"taux de remise",
+  "discounts":"des remises","e-commerce":"le commerce en ligne","feature":"une caractéristique",
+  "final customer price":"prix payé par le client final","first client meeting":"premier rendez-vous client",
+  "full upfront payment":"paiement intégral à l'avance","goods for sale":"marchandises à vendre",
+  "goods to a business":"marchandises livrées à une entreprise",
+  "grouped product delivery":"livraison groupée de produits","ignore":"ignorer",
+  "in-shop selling only":"vente en magasin uniquement","installments":"des paiements échelonnés",
+  "interviews for jobs":"entretiens d'embauche","invoice":"une facture","invoices":"des factures",
+  "job title":"intitulé de poste","key account":"un grand compte (client clé)","key accounts":"des grands comptes",
+  "loyalty":"la fidélité","maker of materials":"fabricant de matériaux","making a complaint":"faire une réclamation",
+  "market share":"part de marché","marketing":"le marketing","online buying/selling":"achat/vente en ligne",
+  "overcome":"surmonter","partial regular payment":"paiement partiel régulier","payment method":"mode de paiement",
+  "pitch":"argumentaire de vente","portfolio":"portefeuille (clients/produits)","postpone":"reporter",
+  "product manufacturing team":"équipe de fabrication","product warranty":"garantie produit",
+  "prospect":"un prospect","purchase order":"bon de commande","quota":"un quota (objectif de vente)",
+  "quotation":"un devis","refund":"un remboursement","refund method":"mode de remboursement",
+  "refund policy":"politique de remboursement","refunds":"des remboursements",
+  "repeat buying habit":"habitude de rachat régulier","request a refund":"demander un remboursement",
+  "requesting refunds":"demander des remboursements","research on markets":"études de marché",
+  "retail":"la vente au détail","retailer":"un détaillant","sales":"les ventes",
+  "sales contract":"contrat de vente","sales-based extra pay":"prime liée aux ventes (commission)",
+  "sample":"un échantillon","samples":"des échantillons",
+  "seller to consumers":"vendeur au consommateur final (détaillant)",
+  "seller to retailers":"vendeur aux détaillants (grossiste)","shareholder":"un actionnaire",
+  "shareholders":"des actionnaires","single customer order":"commande d'un seul client","stock":"le stock",
+  "supplier":"un fournisseur","supplier's cost":"coût du fournisseur","suppliers":"des fournisseurs",
+  "support after purchase":"assistance après l'achat","target market":"marché cible",
+  "technical characteristic":"caractéristique technique","terms":"les conditions","to bargain":"négocier",
+  "to cancel":"annuler","to cancel a purchase":"annuler un achat","to cancel an order":"annuler une commande",
+  "to complain about a product":"se plaindre d'un produit","to delay delivery":"retarder la livraison",
+  "to deliver":"livrer","to finalise a sale":"finaliser une vente","to refund":"rembourser",
+  "to request a refund":"demander un remboursement","to request goods formally":"commander formellement des marchandises",
+  "total company debt":"dette totale de l'entreprise","total company profit":"bénéfice total de l'entreprise",
+  "total company sales":"chiffre d'affaires total","total office cost":"coût total des bureaux",
+  "total staff number":"effectif total","turnover":"le chiffre d'affaires","type of advertisement":"type de publicité",
+  "type of bank":"type de banque","type of complaint":"type de réclamation","type of contract":"type de contrat",
+  "type of discount":"type de remise","type of invoice":"type de facture",
+  "value added tax":"taxe sur la valeur ajoutée","value after tax":"valeur après impôt (incorrect)",
+  "variable annual tax":"taxe annuelle variable (incorrect)","very affordable tax":"taxe très abordable (incorrect)",
+  "warranty":"une garantie","wholesale":"la vente en gros","wholesaler":"un grossiste",
+  "wholesaler's cost price":"prix coûtant du grossiste"
+};
+
+/* Explications individuelles pour le niveau 4 (objections) — une par item, clé = texte exact de l'objection (entry.q). */
+const LEVEL4_EXPLANATIONS = {
+  '"Your price is too high."': "Plutôt que de justifier ou d'ignorer la remarque sur le prix, cette réponse recentre la discussion sur la valeur ajoutée du produit, ce qui aide le client à mieux comprendre ce qu'il paie.",
+  '"I need to think about it."': "Cette réponse ne met pas la pression sur le client : elle l'aide à identifier ce qui le freine encore, pour lever un doute précis plutôt que de le laisser partir sans réponse.",
+  '"I already have a supplier."': "Plutôt que de dénigrer le fournisseur actuel, cette question permet de comprendre les critères importants pour le client et d'adapter ensuite son argumentaire.",
+  '"I don\'t have the budget right now."': "Cette réponse propose une solution concrète (paiement échelonné) au lieu de laisser tomber la vente à cause d'une contrainte budgétaire.",
+  '"This product looks too complicated."': "Cette réponse rassure le client en proposant un accompagnement concret, plutôt que de nier la difficulté ressentie.",
+  '"I\'m not sure it will last long."': "Cette réponse apporte une garantie concrète et vérifiable qui répond directement à la crainte du client, sans minimiser son inquiétude.",
+  '"Your competitor offers a lower price."': "Plutôt que de critiquer le concurrent, cette réponse met en avant les services inclus qui justifient la différence de prix.",
+  '"I don\'t need this right now."': "Cette réponse respecte le refus du client tout en gardant la porte ouverte pour une future prise de contact, sans insister lourdement.",
+  '"I had a bad experience with your company before."': "Cette réponse commence par de l'écoute et des excuses avant de chercher à comprendre le problème, ce qui désamorce la tension du client.",
+  '"I need to ask my manager first."': "Cette réponse facilite concrètement la décision du client en lui proposant un outil pour convaincre son propre responsable.",
+  '"The delivery time is too long."': "Cette réponse apporte une solution alternative concrète plutôt que de se justifier ou de nier le problème.",
+  '"I\'m happy with what I currently use."': "Cette réponse respecte la satisfaction actuelle du client tout en ouvrant une porte pour lui montrer un bénéfice supplémentaire, sans être insistante.",
+  '"This isn\'t the right time for us."': "Cette réponse accepte le refus du moment tout en gardant le contact pour l'avenir, au lieu d'abandonner ou d'insister.",
+  '"I don\'t trust online reviews about your product."': "Cette réponse propose une preuve concrète et crédible (témoignage direct) plutôt que de contester le doute du client.",
+  '"The contract terms seem too strict."': "Cette réponse invite à une discussion constructive sur les points du contrat, plutôt que de camper sur une position rigide.",
+  '"I don\'t understand what makes your product different."': "Cette réponse apporte des éléments concrets et précis pour répondre à l'incompréhension du client, plutôt que de rester vague.",
+  '"Your product doesn\'t match what I need exactly."': "Cette réponse cherche à mieux cerner le besoin réel du client avant de conclure trop vite qu'il n'y a pas de solution adaptée.",
+  '"I\'ve never heard of your company."': "Cette réponse rassure par la preuve sociale (références clients) plutôt que de se contenter d'affirmer la légitimité de l'entreprise.",
+  '"I\'m worried about the installation process."': "Cette réponse supprime concrètement la source d'inquiétude du client en proposant une prise en charge complète.",
+  '"Your after-sales service seems slow."': "Cette réponse reconnaît implicitement un point d'amélioration récent plutôt que de nier le problème en bloc.",
+  '"I\'m comparing several offers right now."': "Cette question aide à comprendre les critères de choix du client pour mieux positionner l'offre, plutôt que de dénigrer la concurrence.",
+  '"This seems like a long-term commitment."': "Cette réponse propose une alternative concrète à l'engagement long, plutôt que de minimiser l'inquiétude du client.",
+  '"I\'m not the one who makes this decision."': "Cette réponse identifie clairement le bon interlocuteur pour faire avancer la vente, plutôt que d'insister auprès de la mauvaise personne.",
+  '"Your product seems overpriced for what it offers."': "Cette réponse propose une comparaison factuelle pour objectiver la perception du prix, plutôt que d'affirmer simplement que ce n'est pas cher.",
+  '"I\'ve had issues with similar products before."': "Cette réponse répond précisément à l'inquiétude évoquée par le client, en expliquant comment le problème est résolu ici.",
+  '"I don\'t have time for a demonstration today."': "Cette réponse respecte le manque de temps du client tout en cherchant activement un autre moment, plutôt que d'insister ou d'abandonner.",
+  '"Your delivery area doesn\'t cover my location."': "Cette réponse cherche activement une solution avant de refuser la vente, plutôt que de clore la discussion immédiatement.",
+  '"I\'m concerned about the environmental impact."': "Cette réponse apporte une information concrète et vérifiable qui répond directement à la préoccupation du client.",
+  '"I\'m not familiar with this type of product."': "Cette réponse s'adapte au niveau de connaissance du client en proposant une explication accessible, plutôt que de le rendre responsable de son manque de familiarité.",
+  '"Your team seems hard to reach sometimes."': "Cette réponse propose une solution pratique et immédiate au problème signalé, plutôt que de se justifier.",
+  '"I only trust brands I already know."': "Cette réponse s'appuie sur la preuve sociale pour construire la confiance progressivement, plutôt que de contester la méfiance du client.",
+  '"This doesn\'t seem urgent for us right now."': "Cette réponse respecte le timing du client tout en planifiant un prochain contact, plutôt que de forcer l'urgence artificiellement.",
+  '"I\'m not convinced this will increase our sales."': "Cette réponse apporte une preuve concrète et chiffrée (cas similaires) pour objectiver le doute du client.",
+  '"The onboarding process seems long."': "Cette réponse rassure sur l'accompagnement proposé, plutôt que de minimiser la durée perçue du processus.",
+  '"I\'m not sure your team understands our industry."': "Cette réponse démontre une expertise sectorielle par des exemples concrets, plutôt que d'affirmer simplement une compétence générale.",
+  '"Your product requires training for my staff."': "Cette réponse lève un frein concret (coût/effort perçu) en précisant que la formation est déjà comprise dans l'offre.",
+  '"I\'m hesitant because of the long-term contract."': "Cette réponse réduit le risque perçu par le client en proposant un engagement progressif plutôt qu'immédiat.",
+  '"I don\'t see how this fits our current strategy."': "Cette question permet de comprendre le contexte du client avant de démontrer la pertinence de l'offre, plutôt que d'imposer un argumentaire générique.",
+  '"Your competitors offer more flexible terms."': "Cette réponse cherche à identifier les priorités réelles du client pour ajuster l'offre, plutôt que de rejeter la comparaison.",
+  '"I\'m worried this won\'t scale with our growth."': "Cette réponse apporte une preuve concrète de la capacité du produit à évoluer avec l'entreprise du client.",
+  '"I need references before deciding."': "Cette réponse répond directement à la demande du client en lui donnant accès à une preuve tierce et crédible.",
+  '"The setup cost seems high."': "Cette réponse élargit la perspective du client au-delà du coût initial, en mettant en avant le retour sur investissement.",
+  '"I\'m not sure this aligns with our budget cycle."': "Cette réponse propose une adaptation concrète au contexte du client plutôt que d'imposer un calendrier rigide.",
+  '"Your product seems similar to what we already tried."': "Cette question permet de comprendre précisément la déception passée du client avant d'expliquer en quoi la solution actuelle est différente.",
+  '"I\'m concerned about switching providers now."': "Cette réponse réduit la charge perçue du changement en précisant que l'accompagnement est pris en charge."
+};
+
+/* Explications individuelles pour le niveau 7 (répliques) — une par item, clé = texte exact de la remarque client (entry.q). */
+const LEVEL7_EXPLANATIONS = {
+  'Client: "I\'m not sure this fits my budget."': "Cette réplique propose une solution concrète adaptée au budget du client, plutôt que de l'ignorer ou de le culpabiliser.",
+  'Client: "I\'ve been waiting for ten minutes."': "Cette réplique reconnaît l'attente du client avant de passer directement à l'action, ce qui désamorce la frustration.",
+  'Client: "Can you explain what makes this different from other brands?"': "Cette réplique répond de façon claire et structurée à la demande d'information, plutôt que de rester vague.",
+  'Client: "I\'m not sure I need this right now."': "Cette réplique respecte l'hésitation du client tout en gardant le contact pour plus tard, sans insister.",
+  'Client: "Do you offer any guarantee on this product?"': "Cette réplique répond directement et précisément à la question posée, ce qui rassure immédiatement le client.",
+  'Client: "I\'m comparing your offer with another company."': "Cette question permet de comprendre les critères de choix du client, plutôt que de dénigrer la concurrence.",
+  'Client: "I\'m a bit worried about the delivery time."': "Cette réplique propose une solution concrète à l'inquiétude exprimée, plutôt que de la minimiser.",
+  'Client: "Can I get a discount if I order in bulk?"': "Cette réplique répond de façon claire et positive à la demande, ce qui encourage une commande plus importante.",
+  'Client: "I\'m not familiar with how this product works."': "Cette réplique rassure le client en proposant un accompagnement concret, plutôt que de le renvoyer à lui-même.",
+  'Client: "I had a bad experience with your company before."': "Cette réplique commence par de l'écoute et des excuses, ce qui désamorce la tension avant de chercher une solution.",
+  'Client: "Is this your final price?"': "Cette réplique ouvre une marge de négociation sans s'engager trop vite, plutôt que de fermer la discussion.",
+  'Client: "I need to check with my manager first."': "Cette réplique facilite concrètement la décision du client en lui donnant un outil pour convaincre son responsable.",
+  'Client: "Your product seems more expensive than expected."': "Cette réplique objective la perception du prix en détaillant ce qui est réellement inclus dans l'offre.",
+  'Client: "Can someone help me set this up after I buy it?"': "Cette réplique répond directement à une inquiétude pratique du client, ce qui facilite sa décision d'achat.",
+  'Client: "I\'m still hesitant about switching providers."': "Cette réplique réduit la charge perçue du changement, ce qui limite le principal frein à la décision.",
+  'Client: "I don\'t think we\'re ready to commit today."': "Cette réplique cherche à identifier ce qui manque encore au client pour décider, plutôt que de forcer une réponse immédiate.",
+  'Client: "Your team seems hard to reach sometimes."': "Cette réplique propose une solution pratique et immédiate, plutôt que de se justifier.",
+  'Client: "I\'m worried the installation will be complicated."': "Cette réplique supprime concrètement la source d'inquiétude en proposant une prise en charge complète.",
+  'Client: "I\'ve had issues with similar products before."': "Cette réplique répond précisément au problème évoqué par le client, plutôt que de rester dans le vague.",
+  'Client: "Can you send me more details by email?"': "Cette réplique confirme un engagement clair et rapide, ce qui rassure le client sur le suivi.",
+  'Client: "I\'m not sure this solution fits our company size."': "Cette question permet d'adapter l'argumentaire à la réalité du client plutôt que d'imposer une réponse générique.",
+  'Client: "We already tried a similar product and it didn\'t work."': "Cette question permet de comprendre précisément l'expérience passée avant d'expliquer en quoi la solution actuelle diffère.",
+  'Client: "I need this to be approved by our finance team."': "Cette réplique facilite concrètement le processus de décision interne du client.",
+  'Client: "The setup cost seems high for us right now."': "Cette réplique élargit la perspective au-delà du coût initial, vers le retour sur investissement à long terme.",
+  'Client: "I\'m concerned about how long training will take."': "Cette réplique répond directement à la contrainte de temps évoquée par le client.",
+  'Client: "Can I speak to someone who already uses your product?"': "Cette réplique répond directement à la demande de preuve sociale du client.",
+  'Client: "I\'m not sure your product will scale with our growth."': "Cette réplique apporte une preuve concrète de la capacité du produit à évoluer avec l'entreprise du client.",
+  'Client: "This contract feels like a long-term commitment."': "Cette réplique réduit le risque perçu en proposant un engagement plus court.",
+  'Client: "I\'m not the one who makes the final decision here."': "Cette réplique identifie le bon interlocuteur pour faire avancer la vente, plutôt que d'insister auprès de la mauvaise personne.",
+  'Client: "I\'m a bit concerned about the environmental impact of this product."': "Cette réplique apporte une information concrète qui répond directement à la préoccupation du client.",
+  'Client: "I\'m not convinced this will actually help our sales."': "Cette réplique objective le doute du client par une preuve concrète issue de cas similaires.",
+  'Client: "I only trust brands I already know."': "Cette réplique construit la confiance progressivement grâce à la preuve sociale, plutôt que de contester la méfiance du client.",
+  'Client: "This doesn\'t seem urgent for us at the moment."': "Cette réplique respecte le timing du client tout en planifiant un prochain contact.",
+  'Client: "I\'m not sure my team will adapt easily to this tool."': "Cette réplique rassure sur l'accompagnement proposé pour faciliter l'adoption de l'outil.",
+  'Client: "Your competitors offer more flexible payment terms."': "Cette réplique cherche à comprendre les priorités réelles du client pour ajuster l'offre.",
+  'Client: "I\'m hesitant because we signed a long contract with our last provider."': "Cette réplique réduit le risque perçu en proposant un engagement progressif plutôt qu'immédiat.",
+  'Client: "I don\'t see how this fits our current strategy."': "Cette question permet de comprendre le contexte du client avant de démontrer la pertinence de l'offre.",
+  'Client: "We\'re a small company, I\'m not sure we\'re your typical client."': "Cette réplique rassure le client sur sa légitimité en tant que client potentiel, quelle que soit sa taille.",
+  'Client: "I\'m worried about hidden fees later on."': "Cette réplique répond directement à la crainte du client par la transparence totale sur les tarifs.",
+  'Client: "Our previous provider promised a lot and delivered very little."': "Cette réplique répond à la méfiance du client par des engagements clairs et vérifiables.",
+  'Client: "I need this to integrate with several other tools we use."': "Cette réplique traite concrètement la contrainte technique évoquée par le client, plutôt que de l'ignorer.",
+  'Client: "I\'m not sure the timing is right for us to switch."': "Cette réplique respecte le timing du client tout en gardant activement le contact pour l'avenir.",
+  'Client: "I\'ve heard mixed reviews about your customer support."': "Cette réplique reconnaît implicitement une marge de progrès récente plutôt que de nier le problème.",
+  'Client: "I\'m worried this will require too much internal training."': "Cette réplique répond directement à la contrainte de temps/formation évoquée par le client.",
+  'Client: "I want to make sure this is the right long-term choice."': "Cette réplique invite à une réflexion partagée sur les objectifs du client, plutôt que d'imposer une réponse toute faite."
+};
+const LEVEL2_CORRECTIONS = {
+  "An \"invoice\" is sent before the customer agrees to buy.": "En réalité, une facture est envoyée après la vente, pour réclamer le paiement.",
+  "A \"wholesaler\" sells directly to the final consumer.": "En réalité, un grossiste vend en grandes quantités aux détaillants, pas directement au client final.",
+  "A \"discount\" increases the final price a customer pays.": "En réalité, une remise réduit le prix final payé par le client.",
+  "A \"prospect\" is a customer who has already bought many times.": "En réalité, un prospect est un client potentiel qui n'a pas encore acheté.",
+  "A \"supplier\" is a company that buys goods from another business.": "En réalité, un fournisseur est une entreprise qui vend des biens à une autre entreprise.",
+  "\"After-sales service\" happens before the customer buys the product.": "En réalité, le service après-vente intervient après l'achat du produit.",
+  "A \"brand\" is only the logo of a company, nothing else.": "En réalité, une marque inclut aussi la réputation, les valeurs et l'image globale de l'entreprise, pas seulement le logo.",
+  "\"B2B\" means selling directly to individual consumers.": "En réalité, le B2B désigne la vente entre entreprises (business to business).",
+  "\"Commission\" is a fixed salary that never changes.": "En réalité, la commission est une rémunération variable, liée aux ventes réalisées.",
+  "A \"catalogue\" is a document used to make a complaint.": "En réalité, un catalogue est un document qui présente les produits à la vente.",
+  "A \"sample\" is a full-size product sold at a discount.": "En réalité, un échantillon est une petite quantité gratuite donnée pour tester un produit.",
+  "\"Cold calling\" means contacting an existing loyal customer.": "En réalité, le cold calling consiste à contacter un prospect inconnu, sans relation préalable.",
+  "A \"deadline\" is a price reduction offered to customers.": "En réalité, une deadline est une date limite à respecter.",
+  "\"E-commerce\" only refers to selling products in a physical shop.": "En réalité, l'e-commerce désigne la vente et l'achat en ligne.",
+  "A \"retail price\" is the price paid by a wholesaler.": "En réalité, le prix de détail (retail price) est le prix payé par le client final.",
+  "An \"installment\" is a full payment made all at once.": "En réalité, un installment est un paiement partiel, échelonné dans le temps.",
+  "\"Customer service\" only deals with product manufacturing.": "En réalité, le service client accompagne et aide les clients ; il ne fabrique pas les produits.",
+  "A \"term of payment\" refers to the delivery address of an order.": "En réalité, un terme de paiement désigne le délai/les conditions convenues pour payer.",
+  "An \"added value\" makes an offer less attractive to customers.": "En réalité, une valeur ajoutée rend au contraire une offre plus attractive.",
+  "\"To close a sale\" means to cancel an order.": "En réalité, conclure une vente (close a sale) signifie la finaliser avec succès.",
+  "A \"shareholder\" is the same as a customer.": "En réalité, un actionnaire (shareholder) détient des parts de l'entreprise ; ce n'est pas un client."
+};
 
 /* ---------- LEVEL 1 — QCM Vocabulaire commercial ---------- */
 const LEVEL1_CONSIGNE = {
@@ -1259,28 +1478,33 @@ function starsHtml(n){
   for(let i=0;i<3;i++) out += `<span class="star ${i<n?'on':''}">${i<n?'⭐':'☆'}</span>`;
   return `<div class="stars">${out}</div>`;
 }
-/* Génère une explication pédagogique courte pour le corrigé (appli + PDF),
-   à partir du niveau et de la réponse enregistrée (pas de contenu supplémentaire à stocker). */
+/* Génère les lignes de vocabulaire (traductions FR) pour le corrigé des niveaux 1 et 3 :
+   affiche TOUTES les options (bonne réponse + distracteurs) pour enrichir le vocabulaire de l'élève. */
+function buildVocabLines(originalItem, correctAnswerText){
+  if(!originalItem || !originalItem.options) return null;
+  return originalItem.options.map(opt=>{
+    const tr = GLOSSARY_FR[opt] || "";
+    const isCorrect = opt === correctAnswerText;
+    return { text: opt, translation: tr, isCorrect };
+  });
+}
+/* Génère une explication pédagogique pour le corrigé (appli + PDF) pour les niveaux
+   sans liste de vocabulaire dédiée (2, 4, 5, 7). */
 function buildExplanation(levelNum, entry){
   const c = entry.correctAnswer;
   const isTF = (c === "True" || c === "False");
   switch(levelNum){
-    case 1:
-      return `« ${c} » est la définition ou la traduction correcte de ce terme de vocabulaire commercial.`;
     case 2:
-      return c === "True"
-        ? "Cette affirmation correspond bien à la définition exacte du terme de vocabulaire commercial."
-        : "Cette affirmation est fausse : elle ne correspond pas à la définition exacte du terme concerné.";
-    case 3:
-      return `« ${c} » est le mot qui convient le mieux dans le contexte de cette phrase.`;
+      if(c === "True") return "Cette affirmation correspond bien à la définition exacte du terme de vocabulaire commercial.";
+      return LEVEL2_CORRECTIONS[entry.q] || "Cette affirmation est fausse au regard du vocabulaire commercial vu en classe.";
     case 4:
-      return `${c} est la réponse la plus professionnelle : elle reste courtoise, montre de l'écoute et propose une solution plutôt que de rejeter l'objection du client.`;
+      return LEVEL4_EXPLANATIONS[entry.q] || "Face à une objection, la bonne réponse reconnaît le point du client, reste positive et propose une solution ou une question pour mieux comprendre son besoin — plutôt que de refuser, ignorer la remarque, ou se justifier sans écouter.";
     case 5:
       return isTF
         ? (c === "True" ? "Cette affirmation est confirmée par le texte ci-dessus." : "Cette affirmation est contredite par le texte ci-dessus.")
         : `« ${c} » correspond à ce qui est dit ou clairement sous-entendu dans le texte.`;
     case 7:
-      return `${c} est la réplique la plus adaptée : professionnelle, à l'écoute du client, et orientée vers une solution.`;
+      return LEVEL7_EXPLANATIONS[entry.q] || "Une bonne réplique commerciale reste professionnelle, montre de l'écoute, et oriente vers une solution concrète — plutôt que d'ignorer la remarque du client ou de réagir sur la défensive.";
     default:
       return `La bonne réponse est « ${c} ».`;
   }
@@ -1926,13 +2150,23 @@ function renderCorrigeScreen(){
       blocks += `<div class="corrige-dialog">` + (variantData ? variantData.items.map((d,i)=>`
         <div class="corrige-dialog-line"><strong>${i+1}. ${d.s==="Salesperson"?"Vendeur":"Client"} :</strong> ${escapeHtml(d.t)}</div>`).join("") : "") + `</div>`;
     } else {
+      const variantData = level.variants.find(v=>v.label===h.variantLabel);
+      const useVocab = (lvlNum === 1 || lvlNum === 3);
       h.items.forEach((it,i)=>{
+        const originalItem = variantData ? variantData.items[i] : null;
+        const vocabLines = useVocab ? buildVocabLines(originalItem, it.correctAnswer) : null;
         blocks += `<div class="corrige-item ${it.isCorrect?'ok':'ko'}">
           <div class="corrige-q">${i+1}. ${escapeHtml(it.q)}</div>
           <div class="corrige-a">Votre réponse : <strong>${escapeHtml(it.studentAnswer)}</strong> ${it.isCorrect ? '✅' : '❌'}</div>
-          ${!it.isCorrect ? `<div class="corrige-correct">Réponse correcte : <strong>${escapeHtml(it.correctAnswer)}</strong></div>` : ``}
-          <div class="corrige-expl">💡 ${escapeHtml(buildExplanation(lvlNum, it))}</div>
-        </div>`;
+          ${!it.isCorrect ? `<div class="corrige-correct">Réponse correcte : <strong>${escapeHtml(it.correctAnswer)}</strong></div>` : ``}`;
+        if(vocabLines){
+          blocks += `<div class="corrige-vocab"><span class="corrige-vocab-title">📚 Vocabulaire à retenir :</span>`
+            + vocabLines.map(v=>`<div class="corrige-vocab-line ${v.isCorrect?'ok':''}">${v.isCorrect?'✔':'•'} ${escapeHtml(v.text)}${v.translation?' = '+escapeHtml(v.translation):''}</div>`).join("")
+            + `</div>`;
+        } else {
+          blocks += `<div class="corrige-expl">💡 ${escapeHtml(buildExplanation(lvlNum, it))}</div>`;
+        }
+        blocks += `</div>`;
       });
     }
     blocks += `</div>`;
@@ -2147,6 +2381,9 @@ function downloadPdf(){
         });
       }
     } else {
+      const lvl = LEVELS[h.level-1];
+      const variantData = lvl.variants.find(v=>v.label===h.variantLabel);
+      const useVocab = (h.level === 1 || h.level === 3);
       h.items.forEach((it, i)=>{
         ensureSpace(14);
         doc.setFont("helvetica","bold"); doc.setFontSize(9.5);
@@ -2162,12 +2399,24 @@ function downloadPdf(){
           const corrLines = doc.splitTextToSize(`Réponse correcte : ${it.correctAnswer}`, maxW);
           corrLines.forEach(l=>{ ensureSpace(5); doc.text(l, marginX+2, y); y+=4.4; });
         }
-        doc.setFont("helvetica","italic"); doc.setFontSize(8.7);
-        doc.setTextColor(74,90,95);
-        const explLines = doc.splitTextToSize(`Explication : ${buildExplanation(h.level, it)}`, maxW-2);
-        explLines.forEach(l=>{ ensureSpace(5); doc.text(l, marginX+2, y); y+=4.1; });
-        doc.setTextColor(28,43,48);
-        doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+        if(useVocab && variantData && variantData.items[i]){
+          const vocabLines = buildVocabLines(variantData.items[i], it.correctAnswer);
+          doc.setFont("helvetica","italic"); doc.setFontSize(8.7); doc.setTextColor(74,90,95);
+          ensureSpace(5); doc.text("Vocabulaire à retenir :", marginX+2, y); y += 4.1;
+          vocabLines.forEach(v=>{
+            const prefix = v.isCorrect ? "-> " : "-  ";
+            const line = doc.splitTextToSize(`${prefix}${v.text}${v.translation ? " = "+v.translation : ""}`, maxW-4);
+            line.forEach(l=>{ ensureSpace(5); doc.text(l, marginX+4, y); y+=4.0; });
+          });
+          doc.setTextColor(28,43,48); doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+        } else {
+          doc.setFont("helvetica","italic"); doc.setFontSize(8.7);
+          doc.setTextColor(74,90,95);
+          const explLines = doc.splitTextToSize(`Explication : ${buildExplanation(h.level, it)}`, maxW-2);
+          explLines.forEach(l=>{ ensureSpace(5); doc.text(l, marginX+2, y); y+=4.1; });
+          doc.setTextColor(28,43,48);
+          doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+        }
         y += 1.5;
       });
     }
