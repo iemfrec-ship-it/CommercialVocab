@@ -779,16 +779,17 @@ const GAME_RULES_TEXT = `Bienvenue dans l'escape game "Sales English Challenge" 
 - Chaque niveau propose un exercice noté sur plusieurs items (2 points par bonne réponse).
 - Si vous ratez un exercice, vous perdez des points mais vous avez une ou deux nouvelles chances avant de passer au niveau suivant.
 - Vos réponses ne sont pas corrigées en direct : le résultat s'affiche à la fin de chaque exercice.
+- ⚠️ Ne rechargez pas la page et ne fermez pas cet onglet pendant la partie : votre progression n'est pas sauvegardée et repartirait de zéro.
 - Téléchargez votre PDF de résultats à tout moment, et envoyez-le à votre professeur sur École Directe à la fin de la séance.`;
 
 const RGPD_TEXT = `Protection des données personnelles
 
 Cette application est un outil pédagogique développé pour un usage en classe.
 
-- Aucune donnée n'est transmise à un serveur externe : toutes les informations (identifiant, réponses, score) sont stockées uniquement dans la mémoire locale de votre navigateur (localStorage).
+- Aucune donnée n'est transmise à un serveur externe : toutes les informations (identifiant, réponses, score) restent uniquement dans la mémoire de votre navigateur, le temps de la partie en cours.
 - Aucun cookie tiers, aucun traceur publicitaire, aucun appel à une API externe n'est utilisé.
 - Les seules données saisies sont : les deux premières lettres de votre prénom et de votre nom (utilisées uniquement pour générer un identifiant au format XX-YY, sans jamais collecter votre identité complète), ainsi que vos réponses aux exercices.
-- Ces données restent sur l'appareil utilisé et sont supprimées si vous effacez les données de navigation de votre navigateur.
+- Ces données ne sont jamais sauvegardées : elles disparaissent automatiquement si vous rechargez ou fermez la page. Pensez à télécharger votre PDF de résultats avant de quitter l'application.
 - Le PDF généré est créé localement dans votre navigateur ; il n'est envoyé à personne automatiquement. C'est à vous de le transmettre à votre professeur.
 - Conformément au RGPD, vous pouvez à tout moment demander la suppression de vos données auprès de votre établissement.`;
 
@@ -1512,15 +1513,15 @@ function buildExplanation(levelNum, entry){
 let state = null;
 let runner = null; // {levelIdx, variantIdx, items, kind, answers:[], text, reorderOrder, currentIndex}
 
-/* ---------- Persistence ---------- */
+/* ---------- Persistence ----------
+   Volontairement désactivée : la partie ne doit pas survivre à un rechargement
+   de page ni à un redéploiement. Chaque chargement de page repart de zéro
+   depuis l'écran d'identification (state vit uniquement en mémoire JS). */
 function loadState(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  }catch(e){ return null; }
+  return null;
 }
 function saveState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  // no-op intentionnel
 }
 
 /* ---------- Helpers ---------- */
@@ -2292,7 +2293,7 @@ function renderTeacherScreen(){
   <div class="card">
     <span class="eyebrow">Accès confirmé</span>
     <h2>Espace enseignant</h2>
-    <p>Aucun suivi de résultats n'est disponible ici : l'application ne se connecte à aucun serveur ni API. Toutes les données (identifiant, réponses, score) restent stockées uniquement dans le navigateur de chaque élève, sur son propre appareil.</p>
+    <p>Aucun suivi de résultats n'est disponible ici : l'application ne se connecte à aucun serveur ni API. Toutes les données (identifiant, réponses, score) restent en mémoire dans le navigateur de chaque élève le temps de la partie, sans jamais être sauvegardées ni transmises.</p>
     <p class="muted">Chaque élève doit vous transmettre son PDF de résultats (via École Directe) pour que vous puissiez consulter son parcours.</p>
     <div class="btn-row">
       <button class="btn btn-secondary" id="backFromTeacher">Retour</button>
