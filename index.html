@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sales English Challenge — BTS NDRC</title>
-<meta name="description" content="Escape game d'anglais commercial pour BTS NDRC — Créé par C. Iemfre">
+<title>Sales English Challenge — Anglais commercial</title>
+<meta name="description" content="Challenge d'anglais commercial — Créé par C. Iemfre">
 <style>
 /* ===================== SALES ENGLISH CHALLENGE — STYLES ===================== */
 /* Design : ludique mais professionnel, palette colorée, fond clair. */
@@ -774,7 +774,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
 /* ===================== SALES ENGLISH CHALLENGE — DATA ===================== */
 /* Contenu validé par l'enseignante. Créé par C. Iemfre. */
 
-const GAME_RULES_TEXT = `Bienvenue dans l'escape game "Sales English Challenge" !
+const GAME_RULES_TEXT = `Bienvenue dans le Sales English Challenge !
 - Vous avancez seul(e), niveau par niveau.
 - Chaque niveau propose un exercice noté sur plusieurs items (2 points par bonne réponse).
 - Si vous ratez un exercice, vous perdez des points mais vous avez une ou deux nouvelles chances avant de passer au niveau suivant.
@@ -793,7 +793,7 @@ Cette application est un outil pédagogique développé pour un usage en classe.
 - Le PDF généré est créé localement dans votre navigateur ; il n'est envoyé à personne automatiquement. C'est à vous de le transmettre à votre professeur.`;
 
 const TEACHER_CODE = "0504";
-const STUDENT_ACCESS_CODE = "1NDRC26";
+const STUDENT_ACCESS_CODE = "SALES-ENGLISH";
 
 /* Glossaire de traduction (FR) pour toutes les options des niveaux 1 et 3,
    utilisé pour donner le vocabulaire complet (bonnes réponses ET distracteurs) dans le corrigé. */
@@ -1454,7 +1454,7 @@ const LEVELS = [
 /* ===================== SALES ENGLISH CHALLENGE — APP LOGIC ===================== */
 /* Créé par C. Iemfre */
 
-const STORAGE_KEY = "sec_ndrc_state_v1";
+const STORAGE_KEY = "sec_state_v1";
 const PIPELINE_LABELS = ["Vocab.","V/Faux","Contexte","Objections","Lecture","Ordre","Réplique"];
 const LEVEL_ICONS = ["📘","✅","✍️","🤝","📖","🔀","💬"];
 const RANK_TITLES = [
@@ -1685,7 +1685,7 @@ function renderIdentificationScreen(){
       <div class="brand-badge spin-badge">SE</div>
       <div>
         <div class="brand-name">Sales English Challenge</div>
-        <div class="brand-sub">🚀 Escape game — Anglais commercial</div>
+        <div class="brand-sub">🚀 Challenge d'anglais commercial</div>
       </div>
     </div>
   </div>
@@ -1700,7 +1700,7 @@ function renderIdentificationScreen(){
     <h2>C'est parti !</h2>
     <div class="field">
       <label for="accessCode">Code d'accès (donné par votre professeur)</label>
-      <input type="text" id="accessCode" autocomplete="off" placeholder="Code d'accès" maxlength="12">
+      <input type="text" id="accessCode" autocomplete="off" placeholder="Code d'accès" maxlength="30">
     </div>
     <div class="two-col">
       <div class="field">
@@ -1714,7 +1714,7 @@ function renderIdentificationScreen(){
     </div>
     <div id="idPreviewWrap"></div>
     <div class="btn-row">
-      <button class="btn btn-primary btn-block btn-lg" id="startBtn" disabled>🎮 Commencer l'escape game</button>
+      <button class="btn btn-primary btn-block btn-lg" id="startBtn" disabled>🎮 Commencer le challenge</button>
     </div>
     <p class="muted mt-16" id="idError" style="display:none;color:#D64545;"></p>
   </div>`;
@@ -2227,7 +2227,7 @@ function renderFinalScreen(){
   return `
   <div class="card">
     <div class="confetti-canvas" id="confettiWrap" aria-hidden="true"></div>
-    <span class="eyebrow">Escape game terminé 🎉</span>
+    <span class="eyebrow">Challenge terminé 🎉</span>
     <h2>Bravo, ${escapeHtml(state.studentId)} !</h2>
     <p>Vous avez terminé les 7 niveaux du Sales English Challenge.</p>
     <div class="result-hero">
@@ -2268,15 +2268,44 @@ function launchConfetti(){
 
 /* ---------- Teacher space ---------- */
 function openTeacherPrompt(){
-  const code = prompt("Code enseignant :");
-  if(code === null) return;
-  if(code.trim() === TEACHER_CODE){
-    if(!state){ state = { screen:"teacher", _teacherOnly:true }; }
-    else { state._prevScreen = state.screen; state.screen = "teacher"; }
-    render();
-  } else {
-    alert("Code incorrect.");
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.id = "teacherPromptOverlay";
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <h3>Espace enseignant</h3>
+      <div class="field">
+        <label for="teacherCodeInput">Code enseignant</label>
+        <input type="password" id="teacherCodeInput" autocomplete="off" inputmode="numeric" placeholder="Code">
+      </div>
+      <p class="muted" id="teacherCodeError" style="display:none;color:#D64545;">Code incorrect.</p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="teacherCodeSubmit">Valider</button>
+        <button class="btn btn-secondary" id="teacherCodeCancel">Annuler</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const input = document.getElementById("teacherCodeInput");
+  const error = document.getElementById("teacherCodeError");
+  input.focus();
+
+  function submit(){
+    const code = input.value.trim();
+    if(code === TEACHER_CODE){
+      overlay.remove();
+      if(!state){ state = { screen:"teacher", _teacherOnly:true }; }
+      else { state._prevScreen = state.screen; state.screen = "teacher"; }
+      render();
+    } else {
+      error.style.display = "block";
+      input.value = "";
+      input.focus();
+    }
   }
+  document.getElementById("teacherCodeSubmit").addEventListener("click", submit);
+  document.getElementById("teacherCodeCancel").addEventListener("click", ()=> overlay.remove());
+  input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") submit(); });
+  overlay.addEventListener("click", (e)=>{ if(e.target===overlay) overlay.remove(); });
 }
 function renderTeacherScreen(){
   return `
@@ -2290,10 +2319,9 @@ function renderTeacherScreen(){
     </div>
   </div>
   <div class="card">
-    <span class="eyebrow">Accès confirmé</span>
-    <h2>Espace enseignant</h2>
-    <p>Aucun suivi de résultats n'est disponible ici : l'application ne se connecte à aucun serveur ni API. Toutes les données (identifiant, réponses, score) restent en mémoire dans le navigateur de chaque élève le temps de la partie, sans jamais être sauvegardées ni transmises.</p>
-    <p class="muted">Chaque élève doit vous transmettre son PDF de résultats (via École Directe) pour que vous puissiez consulter son parcours.</p>
+    <span class="eyebrow">🔑 Rappel</span>
+    <h2>Code d'accès élèves</h2>
+    <div class="id-preview" style="font-size:1.4rem;">${escapeHtml(STUDENT_ACCESS_CODE)}</div>
     <div class="btn-row">
       <button class="btn btn-secondary" id="backFromTeacher">Retour</button>
     </div>
@@ -2325,7 +2353,7 @@ function openRGPD(){
 
 /* ---------- PDF generation ---------- */
 function downloadPdf(){
-  if(!state || !state.studentId){ alert("Identifiez-vous avant de télécharger un PDF."); return; }
+  if(!state || !state.studentId){ return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:"mm", format:"a4"});
   const pageW = 210, marginX = 16, maxW = pageW - marginX*2;
@@ -2354,7 +2382,7 @@ function downloadPdf(){
   doc.setFont("helvetica","bold"); doc.setFontSize(18);
   doc.text("Sales English Challenge", marginX, y); y += 9;
   doc.setFontSize(11); doc.setFont("helvetica","normal");
-  doc.text("Résultats de l'escape game — Anglais commercial (BTS NDRC 1re année)", marginX, y); y += 12;
+  doc.text("Résultats du challenge — Anglais commercial", marginX, y); y += 12;
 
   heading("Règles du jeu", 12);
   paragraph(GAME_RULES_TEXT.replace(/\n/g, "\n"));
